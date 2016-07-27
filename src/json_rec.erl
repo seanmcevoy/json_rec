@@ -57,10 +57,7 @@ rec_keys([Field|Rest],Record,Module,Acc) ->
     Value = module_get(Module, Field, Record),
     Key = list_to_binary(atom_to_list(Field)),
     JsonValue = field_value(Value,Module,[]),
-    case JsonValue of
-        undefined ->  rec_keys(Rest, Record, Module,Acc);
-        _ ->  rec_keys(Rest, Record, Module,[{Key,JsonValue}|Acc])
-    end.
+    rec_keys(Rest, Record, Module,[{Key,JsonValue}|Acc]).
 
 
 field_value(Value, Module, _Acc) when is_tuple(Value) ->
@@ -70,11 +67,14 @@ field_value(Value, Module, _Acc) when is_tuple(Value) ->
         _M when is_atom(_M) ->
             to_json(Value,Module)
     end;
+field_value(Value, _Module, _Acc) when Value =:= undefined ->
+        null;
 field_value(Value, _Module, _Acc) when Value =:= null;
-                                        Value == undefined;
-                                       Value =:= false;
-                                       Value =:= true ->
-    Value;
+
+                                        Value =:= false;
+                                        Value =:= true ->
+                                        Value;
+
 field_value(Value, _Module, _Acc) when is_atom(Value) ->
 
     list_to_binary(atom_to_list(Value));
