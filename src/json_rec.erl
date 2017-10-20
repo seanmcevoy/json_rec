@@ -42,41 +42,32 @@
              (Record :: tuple(), Module :: atom())  -> {struct, proplist()}.
 
 to_json(Record, Module) when is_list(Module) ->
-    Fields = module_rec_fields(Module,Record),
+    Fields = module_rec_fields(Record),
     Pl = rec_keys(Fields, Record, Module, []),
     {struct, Pl};
 
 to_json(Record, Module) ->
-    Fields = module_rec_fields([Module],Record),
+    Fields = module_rec_fields(Record),
     Pl = rec_keys(Fields,Record,[Module],[]),
     {struct, Pl}.
 
 
 rec_keys([], _Record, _Module, Acc) -> Acc;
 rec_keys([Field|Rest],Record,Module,Acc) ->
-    Value = module_get(Module, Field, Record),
+    Value = module_get(Field, Record),
     Key = list_to_binary(atom_to_list(Field)),
     JsonValue = field_value(Value,Module,[]),
     rec_keys(Rest, Record, Module,[{Key,JsonValue}|Acc]).
 
 
 field_value(Value, Module, _Acc) when is_tuple(Value) ->
-    case module_has_rec(Module, Value, false) of
-        false ->
-            Value;
-        _M when is_atom(_M) ->
-            to_json(Value,Module)
-    end;
+    to_json(Value, Module);
 field_value(Value, _Module, _Acc) when Value =:= undefined ->
-        null;
-field_value(Value, _Module, _Acc) when Value =:= null;
-
-                                        Value =:= false;
-                                        Value =:= true ->
-                                        Value;
+    null;
+field_value(Value, _Module, _Acc) when Value =:= null; Value =:= false; Value =:= true ->
+    Value;
 
 field_value(Value, _Module, _Acc) when is_atom(Value) ->
-
     list_to_binary(atom_to_list(Value));
 
 
@@ -145,13 +136,13 @@ keys_rec([{Key, {struct, Pl}}|Rest], Module, Rec) ->
                     %% we have a new record, go back go the topproplist
                     to_rec({struct,Pl}, Module, SubRec)
             end,
-    UpRec = module_set(Module, {Field,Value}, Rec),
+    UpRec = module_set({Field,Value}, Rec),
     keys_rec(Rest, Module, UpRec);
 
 keys_rec([{Key, Value}|Rest], Module, Rec) ->
     Field = list_to_atom(binary_to_list(Key)),
     NewValue = to_value(Value,Module),
-    NewRec = module_set(Module, {Field, NewValue}, Rec),
+    NewRec = module_set({Field, NewValue}, Rec),
     keys_rec(Rest,Module,NewRec).
 
 pl(P, Module) ->
@@ -192,31 +183,11 @@ module_new([H|T], Key, Rec) ->
     end.
 
 
-module_has_rec(_Ms, _Rec) -> exprec.
+module_set(Kv, Rec) ->
+    exprec:set([Kv],Rec).
 
-%% module_has_rec(Ms, Rec) ->
-%%     module_has_rec(Ms, Rec, throw).
+module_rec_fields(Rec) ->
+    exprec:info(element(1, Rec)).
 
-%% module_has_rec([],_Rec, throw) -> throw(did_not_find_module);
-%% module_has_rec([],_Rec, V) -> V;
-%% module_has_rec([M|T],Rec, Act) ->
-%%     case M:'#is_record-'(Rec) of
-%%         false ->
-%%             module_has_rec(T,Rec, Act);
-%%         true  ->
-%%             M
-%%     end.
-
-
-
-module_set(Ms, Kv, Rec) ->
-    M = module_has_rec(Ms,Rec),
-    M:set([Kv],Rec).
-
-module_rec_fields(Ms, Rec ) ->
-    M = module_has_rec(Ms,Rec),
-    M:info(element(1, Rec)).
-
-module_get(Ms, Field, Rec) ->
-    M = module_has_rec(Ms, Rec),
-    M:get(Field,Rec).
+module_get(Field, Rec) ->
+    exprec:get(Field,Rec).
