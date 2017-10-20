@@ -192,29 +192,31 @@ module_new([H|T], Key, Rec) ->
     end.
 
 
-module_has_rec(Ms, Rec) ->
-    module_has_rec(Ms, Rec, throw).
+module_has_rec(_Ms, _Rec) -> exprec.
 
-module_has_rec([],_Rec, throw) -> throw(did_not_find_module);
-module_has_rec([],_Rec, V) -> V;
-module_has_rec([M|T],Rec, Act) ->
-    case M:'#is_record-'(Rec) of
-        false ->
-            module_has_rec(T,Rec, Act);
-        true  ->
-            M
-    end.
+%% module_has_rec(Ms, Rec) ->
+%%     module_has_rec(Ms, Rec, throw).
+
+%% module_has_rec([],_Rec, throw) -> throw(did_not_find_module);
+%% module_has_rec([],_Rec, V) -> V;
+%% module_has_rec([M|T],Rec, Act) ->
+%%     case M:'#is_record-'(Rec) of
+%%         false ->
+%%             module_has_rec(T,Rec, Act);
+%%         true  ->
+%%             M
+%%     end.
 
 
 
 module_set(Ms, Kv, Rec) ->
     M = module_has_rec(Ms,Rec),
-    M:'#set-'([Kv],Rec).
+    M:set([Kv],Rec).
 
 module_rec_fields(Ms, Rec ) ->
     M = module_has_rec(Ms,Rec),
-    M:'#info-'(element(1, Rec)).
+    M:info(element(1, Rec)).
 
 module_get(Ms, Field, Rec) ->
     M = module_has_rec(Ms, Rec),
-    M:'#get-'(Field,Rec).
+    M:get(Field,Rec).
