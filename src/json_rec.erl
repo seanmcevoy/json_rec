@@ -142,7 +142,8 @@ keys_rec([{Key, {struct, Pl}}|Rest], Module, Rec) ->
 keys_rec([{Key, Value}|Rest], Module, Rec) ->
     Field = list_to_atom(binary_to_list(Key)),
     NewValue0 = to_value(Value,Module),
-    NewValue = p_unicode_escape(Key,NewValue0),
+    Exemptions = get_exemptions(Module),
+    NewValue = p_unicode_escape(Key,NewValue0, Exemptions),
     NewRec = module_set({Field, NewValue}, Rec),
     error_logger:info_msg("{Key, Value, NewValue}~p~n",[Key,Value, NewValue]),
     keys_rec(Rest,Module,NewRec).
@@ -174,13 +175,15 @@ to_value(V,_Module,_Acc) ->
 
     V.
 
+get_exemptions([Module]) ->
+    case erlang:function_exported(Module, exemptions, 0) of
+        true -> Module:exemptions();
+        _ -> []
+    end;
+get_exemptions(_) -> [].
 
 
-p_unicode_escape(K,V) when is_binary(V) ->
-
-    Exemptions = [company_logo_url, continue_url, get_pypestream_url,url, pypestream_url, crm_url, agent_routing_url, bot_url, last_viewed_url,
-        broadcast_sms_invitation_url, chat_logs_end_point, logo, sns_endpoint ],
-
+p_unicode_escape(K,V, Exemptions) when is_binary(V) ->
 
     case lists:member(list_to_atom(binary_to_list(K)), Exemptions) of
         true -> V;
@@ -188,7 +191,7 @@ p_unicode_escape(K,V) when is_binary(V) ->
             list_to_binary(escape_string(binary_to_list(V)))
     end;
 
-p_unicode_escape(_K,V) ->
+p_unicode_escape(_K,V,_) ->
     V.
 
 
