@@ -141,8 +141,10 @@ keys_rec([{Key, {struct, Pl}}|Rest], Module, Rec) ->
 
 keys_rec([{Key, Value}|Rest], Module, Rec) ->
     Field = list_to_atom(binary_to_list(Key)),
-    NewValue = to_value(Value,Module),
+    NewValue0 = to_value(Value,Module),
+    NewValue = p_unicode_escape(Key,NewValue0),
     NewRec = module_set({Field, NewValue}, Rec),
+    error_logger:info_msg("{Key, Value, NewValue}~p~n",[Key,Value, NewValue]),
     keys_rec(Rest,Module,NewRec).
 
 pl(P, Module) ->
@@ -168,7 +170,50 @@ to_value({struct, Pl}, Module, _Acc) ->
 to_value([], _Module, Acc) -> Acc;
 to_value([H|T],Module, Acc) ->
     to_value(T,Module,[to_value(H,Module,[])|Acc]);
-to_value(V,_Module,_Acc) -> V.
+to_value(V,_Module,_Acc) ->
+
+    V.
+
+
+
+p_unicode_escape(K,V) when is_binary(V) ->
+
+    Exemptions = [company_logo_url, continue_url, get_pypestream_url,url, pypestream_url, crm_url, agent_routing_url, bot_url, last_viewed_url,
+        broadcast_sms_invitation_url, chat_logs_end_point, logo, sns_endpoint ],
+
+
+    case lists:member(list_to_atom(binary_to_list(K)), Exemptions) of
+        true -> V;
+        _ ->
+            list_to_binary(escape_string(binary_to_list(V)))
+    end;
+
+p_unicode_escape(_K,V) ->
+    V.
+
+
+escape_string(String) ->
+    lists:flatten([ escape_char(Char) || Char <- String ]).
+
+%  JSON Unicode escaping so that characters like "<", ">", "&", "/", single quote, and double quote are converted to "\u003C", "\u003E", "\u0026", "\u002F", "\u0027", and "\u0022".
+%"\"\'<&/\\>"
+escape_char(C) ->
+    case  lists:member(C, [$\", $\',  $<, $&, $/, $>]) of
+        true ->
+            "\\u" ++ pad( integer_to_list(C, 16) );
+        _ ->
+            [C]
+    end.
+
+
+pad([A ]) -> [$0, $0, $0, A];
+pad([A, B]) -> [$0, $0, A, B];
+pad([A, B, C]) -> [$0, A, B, C];
+pad(_Other) -> _Other.
+
+
+
+
 
 
 
