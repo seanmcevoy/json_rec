@@ -141,7 +141,9 @@ keys_rec([{Key, {struct, Pl}}|Rest], Module, Rec) ->
 
 keys_rec([{Key, Value}|Rest], Module, Rec) ->
     Field = list_to_atom(binary_to_list(Key)),
-    NewValue = to_value(Value,Module),
+    NewValue0 = to_value(Value,Module),
+    Exemptions = get_exemptions(Module),
+    NewValue = p_unicode_escape(Key,NewValue0, Exemptions),
     NewRec = module_set({Field, NewValue}, Rec),
     keys_rec(Rest,Module,NewRec).
 
@@ -191,3 +193,44 @@ module_rec_fields(Rec) ->
 
 module_get(Field, Rec) ->
     exprec:get(Field,Rec).
+
+
+
+get_exemptions([Module]) ->
+    case erlang:function_exported(Module, exemptions, 0) of
+        true -> Module:exemptions();
+        _ -> []
+    end;
+get_exemptions(_) -> [].
+
+
+p_unicode_escape(K,V, Exemptions) when is_binary(V) ->
+
+    case lists:member(list_to_atom(binary_to_list(K)), Exemptions) of
+        true -> V;
+        _ ->
+            list_to_binary(escape_string(binary_to_list(V)))
+    end;
+
+p_unicode_escape(_K,V,_) ->
+    V.
+
+
+escape_string(String) ->
+    lists:flatten([ escape_char(Char) || Char <- String ]).
+
+%  JSON Unicode escaping so that characters like "<", ">", "&", "/", single quote, and double quote are converted to "\u003C", "\u003E", "\u0026", "\u002F", "\u0027", and "\u0022".
+%"\"\'<&/\\>"
+escape_char(C) ->
+    case  lists:member(C, [$\", $\',  $<, $&, $/, $>]) of
+        true ->
+            "\\u" ++ pad( integer_to_list(C, 16) );
+        _ ->
+            [C]
+    end.
+
+
+pad([A ]) -> [$0, $0, $0, A];
+pad([A, B]) -> [$0, $0, A, B];
+pad([A, B, C]) -> [$0, A, B, C];
+pad(_Other) -> _Other.
