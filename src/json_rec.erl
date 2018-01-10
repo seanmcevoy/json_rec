@@ -222,7 +222,7 @@ escape_string(String) ->
 %  JSON Unicode escaping so that characters like "<", ">", "&", "/", single quote, and double quote are converted to "\u003C", "\u003E", "\u0026", "\u002F", "\u0027", and "\u0022".
 %"\"\'<&/\\>"
 escape_char(C) ->
-    case  lists:member(C, [$\", $\',  $<, $&, $/, $>]) of
+    case  lists:member(C, [ $\',  $<, $&, $/, $>]) of
         true ->
             "\\u" ++ pad( integer_to_list(C, 16) );
         _ ->
