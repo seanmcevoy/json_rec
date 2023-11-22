@@ -72,6 +72,7 @@ field_value(Value, _Module, _Acc) when is_atom(Value) ->
 
 
 field_value([],_Module, Acc)  -> lists:reverse(Acc);
+field_value([{}], _Module, _Acc) -> {};
 field_value([{_,_}|_] = Pl, Module, Acc) ->
     %% it is a proplist, make it a dict
     {struct, [{Key, Value} || {Key, V2} <- Pl,
