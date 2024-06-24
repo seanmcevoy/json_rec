@@ -60,6 +60,7 @@ rec_keys([Field|Rest],Record,Module,Acc) ->
     rec_keys(Rest, Record, Module,[{Key,JsonValue}|Acc]).
 
 
+field_value({}, _Module, _Acc) -> [];
 field_value(Value, Module, _Acc) when is_tuple(Value) ->
     to_json(Value, Module);
 field_value(Value, _Module, _Acc) when Value =:= undefined ->
